@@ -1,5 +1,3 @@
-export CUDA_VISIBLE_DEVICES=2
-
 model_name=TimesNet
 
 python -u run.py \
@@ -8,7 +6,7 @@ python -u run.py \
   --root_path ./dataset/ETT-small/ \
   --data_path ETTh1.csv \
   --model_id ETTh1_96_96 \
-  --model $model_name \
+  --model TimesNet \
   --data ETTh1 \
   --features M \
   --seq_len 96 \
