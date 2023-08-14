@@ -112,9 +112,19 @@ class Model(nn.Module):
         enc_out = self.enc_embedding(x_enc, x_mark_enc)  # [B,T,C]
         enc_out = self.predict_linear(enc_out.permute(0, 2, 1)).permute(
             0, 2, 1)  # align temporal dimension
+
+        # TODO: Initialize the linear layers
+        self.linear_layers = nn.ModuleList([nn.Linear(enc_out.size(-1), enc_out.size(-1)) for _ in range(self.layer)])
+        # TODO: Create layer_out, using the size of enc_out: [e_layer, B, T, C]
+        layer_out = torch.zeros(self.layer, *enc_out.size()).to(enc_out.device)
+
         # TimesNet
         for i in range(self.layer):
             enc_out = self.layer_norm(self.model[i](enc_out))
+
+            # TODO: Store each enc_out in the placeholder tensor
+            layer_out[i] = self.linear_layers[i](enc_out)
+
         # porject back
         dec_out = self.projection(enc_out)
 
