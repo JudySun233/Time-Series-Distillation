@@ -16,6 +16,9 @@ warnings.filterwarnings('ignore')
 class Exp_Long_Term_Forecast(Exp_Basic):
     def __init__(self, args):
         super(Exp_Long_Term_Forecast, self).__init__(args)
+        #TODO: define hyperparameter for loss: self.C, self.T
+        self.C = 0.5
+        self.T = 0.5
 
     def _build_model(self):
         model = self.model_dict[self.args.model].Model(self.args).float()
@@ -35,6 +38,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
     def _select_criterion(self):
         criterion = nn.MSELoss()
         return criterion
+    
+    #TODO
+    def _distillation_loss(self):
+        return None
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
@@ -140,6 +147,16 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     loss = criterion(outputs, batch_y)
                     train_loss.append(loss.item())
 
+                #TODO
+                print(f"self.layer_out.length = {len(self.model.layer_out)}")
+                print(f"shape = {self.model.layer_out[0].shape}")
+
+                teacher_outputs = self.model.layer_out[-1]
+                student_outputs = self.model.layer_out[:-1]
+
+                distillation_loss = self._distillation_loss(teacher_outputs, student_outputs)
+                total_loss = self.C * loss + self.T * distillation_loss    
+
                 if (i + 1) % 100 == 0:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
@@ -149,11 +166,13 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     time_now = time.time()
 
                 if self.args.use_amp:
-                    scaler.scale(loss).backward()
+                    #scaler.scale(loss).backward()
+                    scaler.scale(total_loss).backward()
                     scaler.step(model_optim)
                     scaler.update()
                 else:
-                    loss.backward()
+                    #loss.backward()
+                    total_loss.backward()
                     model_optim.step()
 
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
