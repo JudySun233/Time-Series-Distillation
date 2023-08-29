@@ -150,9 +150,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 #TODO
                 print(f"self.layer_out.length = {len(self.layer_out)}")
                 print(f"shape = {self.layer_out[0].shape}")
-                
-                teacher_model = self.model.teacher_model
-                student_model = self.model.student_model
+
+                teacher_model = self.layer_out[-1]
+                student_model = self.layer_out[:-1]
 
                 teacher_outputs = teacher_model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                 student_outputs = student_model(batch_x, batch_x_mark, dec_inp, batch_y_mark)

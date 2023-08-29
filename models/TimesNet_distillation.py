@@ -97,10 +97,6 @@ class Model(nn.Module):
             # self.projection = nn.Linear(
             #     configs.d_model, configs.c_out, bias=True)
 
-            # TODO: Define teacher and student models
-            self.teacher_model = self.linear_layers[-1]
-            self.student_model = nn.ModuleList(self.linear_layers[:-1])
-
         if self.task_name == 'imputation' or self.task_name == 'anomaly_detection':
             self.projection = nn.Linear(
                 configs.d_model, configs.c_out, bias=True)
@@ -127,25 +123,30 @@ class Model(nn.Module):
         enc_out = self.predict_linear(enc_out.permute(0, 2, 1)).permute(
             0, 2, 1)  # align temporal dimension
 
-        layer_out = []
+        self.layer_out = []
 
         # TimesNet
         for i in range(self.layer):
             enc_out = self.layer_norm(self.model[i](enc_out))
             # Store each enc_out in the placeholder tensor
-            layer_out.append(self.linear_layers[i](enc_out))
+            self.layer_out.append(self.linear_layers[i](enc_out))
         
         # porject back
         # dec_out = self.projection(enc_out)
-        dec_out = layer_out[-1]
+        
+        for i in range(len(self.layer_out)):
+            dec_out = self.layer_out[i]
+            # De-Normalization from Non-stationary Transformer
+            dec_out = dec_out * \
+                    (stdev[:, 0, :].unsqueeze(1).repeat(
+                        1, self.pred_len + self.seq_len, 1))
+            dec_out = dec_out + \
+                    (means[:, 0, :].unsqueeze(1).repeat(
+                        1, self.pred_len + self.seq_len, 1))
+            self.layer_out[i] = dec_out
 
-        # De-Normalization from Non-stationary Transformer
-        dec_out = dec_out * \
-                  (stdev[:, 0, :].unsqueeze(1).repeat(
-                      1, self.pred_len + self.seq_len, 1))
-        dec_out = dec_out + \
-                  (means[:, 0, :].unsqueeze(1).repeat(
-                      1, self.pred_len + self.seq_len, 1))
+        dec_out = self.layer_out[-1]    
+
         return dec_out
 
     def imputation(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask):
