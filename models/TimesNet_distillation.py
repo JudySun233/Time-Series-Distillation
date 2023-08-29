@@ -86,6 +86,9 @@ class Model(nn.Module):
                                            configs.dropout)
         self.layer = configs.e_layers
         self.layer_norm = nn.LayerNorm(configs.d_model)
+
+        # TODO: Create layer_out, using the size of enc_out: [e_layer, B, T, C]
+        self.layer_out = []
         
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             self.linear_layers = nn.ModuleList([nn.Linear(configs.d_model, configs.c_out) for _ in range(self.layer)])
@@ -93,6 +96,11 @@ class Model(nn.Module):
                 self.seq_len, self.pred_len + self.seq_len)
             # self.projection = nn.Linear(
             #     configs.d_model, configs.c_out, bias=True)
+
+            # TODO: Define teacher and student models
+            self.teacher_model = self.linear_layers[-1]
+            self.student_model = nn.ModuleList(self.linear_layers[:-1])
+
         if self.task_name == 'imputation' or self.task_name == 'anomaly_detection':
             self.projection = nn.Linear(
                 configs.d_model, configs.c_out, bias=True)
@@ -101,6 +109,10 @@ class Model(nn.Module):
             self.dropout = nn.Dropout(configs.dropout)
             self.projection = nn.Linear(
                 configs.d_model * configs.seq_len, configs.num_class)
+            
+        # TODO: Define teacher and student models
+        # self.teacher_model = self.linear_layers[-1]
+        # self.student_model = nn.ModuleList(self.linear_layers[:-1])
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         # Normalization from Non-stationary Transformer
@@ -115,17 +127,13 @@ class Model(nn.Module):
         enc_out = self.predict_linear(enc_out.permute(0, 2, 1)).permute(
             0, 2, 1)  # align temporal dimension
 
-        # TODO: Initialize the linear layers
-        # self.linear_layers = nn.ModuleList([nn.Linear(enc_out.size(-1), enc_out.size(-1)) for _ in range(self.layer)])
-        # TODO: Create layer_out, using the size of enc_out: [e_layer, B, T, C]
-        layer_out = torch.zeros(self.layer, enc_out.shape[0], enc_out.shape[1], self.configs.c_out).to(enc_out.device)
+        layer_out = []
 
         # TimesNet
         for i in range(self.layer):
             enc_out = self.layer_norm(self.model[i](enc_out))
-
-            # TODO: Store each enc_out in the placeholder tensor
-            layer_out[i] = self.linear_layers[i](enc_out)
+            # Store each enc_out in the placeholder tensor
+            layer_out.append(self.linear_layers[i](enc_out))
         
         # porject back
         # dec_out = self.projection(enc_out)
