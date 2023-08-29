@@ -151,11 +151,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 print(f"self.layer_out.length = {len(self.model.layer_out)}")
                 print(f"shape = {self.model.layer_out[0].shape}")
 
-                teacher_model = self.model.layer_out[-1]
-                student_model = self.model.layer_out[:-1]
-
-                teacher_outputs = teacher_model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-                student_outputs = student_model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                teacher_outputs = self.model.layer_out[-1]
+                student_outputs = self.model.layer_out[:-1]
 
                 distillation_loss = self._distillation_loss(teacher_outputs, student_outputs)
                 total_loss = self.C * loss + self.T * distillation_loss    
