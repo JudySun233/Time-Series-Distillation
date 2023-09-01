@@ -1,6 +1,6 @@
 import os
 import torch
-from models import Autoformer, Transformer, TimesNet_distillation, Nonstationary_Transformer, DLinear, FEDformer, \
+from models import Autoformer, Transformer, TimesNet_distillation_ICCV, TimesNet_distillation_ECCV, Nonstationary_Transformer, DLinear, FEDformer, \
     Informer, LightTS, Reformer, ETSformer, Pyraformer, PatchTST, MICN, Crossformer, FiLM
 
 
@@ -8,7 +8,7 @@ class Exp_Basic(object):
     def __init__(self, args):
         self.args = args
         self.model_dict = {
-            'TimesNet': TimesNet_distillation,
+            'TimesNet': TimesNet_distillation_ICCV,
             'Autoformer': Autoformer,
             'Transformer': Transformer,
             'Nonstationary_Transformer': Nonstationary_Transformer,
