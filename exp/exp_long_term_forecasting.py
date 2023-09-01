@@ -18,7 +18,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         super(Exp_Long_Term_Forecast, self).__init__(args)
         #TODO: define hyperparameter for loss: self.C, self.T
         self.C = 0.5
-        self.T = 0.5
+        # self.T = 0.5
 
     def _build_model(self):
         model = self.model_dict[self.args.model].Model(self.args).float()
@@ -40,8 +40,15 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return criterion
     
     #TODO
-    def _distillation_loss(self):
-        return None
+    def _distillation_loss(self, teacher_outputs, students_outputs):
+        criterion = nn.MSELoss()
+        
+        total_loss = 0
+        for student_outputs in students_outputs:
+            total_loss += criterion(teacher_outputs, student_outputs)
+        total_loss /= len(students_outputs)
+        
+        return total_loss
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
@@ -148,14 +155,14 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     train_loss.append(loss.item())
 
                 #TODO
-                print(f"self.layer_out.length = {len(self.model.layer_out)}")
-                print(f"shape = {self.model.layer_out[0].shape}")
+                # print(f"self.layer_out.length = {len(self.model.layer_out)}")
+                # print(f"shape = {self.model.layer_out[0].shape}")
 
                 teacher_outputs = self.model.layer_out[-1]
-                student_outputs = self.model.layer_out[:-1]
+                students_outputs = self.model.layer_out[:-1]
 
-                distillation_loss = self._distillation_loss(teacher_outputs, student_outputs)
-                total_loss = self.C * loss + self.T * distillation_loss    
+                distillation_loss = self._distillation_loss(teacher_outputs, students_outputs)
+                total_loss = self.C * loss + (1 - self.C) * distillation_loss    
 
                 if (i + 1) % 100 == 0:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
